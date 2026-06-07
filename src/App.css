@@ -1,0 +1,11 @@
+.app {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background: #1a1a2e;
+    color: #e0e0e0;
+  }
+}
