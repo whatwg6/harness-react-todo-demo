@@ -5,62 +5,60 @@ test.describe('Todo App', () => {
     await page.goto('/')
   })
 
-  test('shows empty state initially', async ({ page }) => {
-    await expect(page.getByText('No todos yet. Add one above!')).toBeVisible()
+  test('matches the provided todo app design and default content', async ({
+    page,
+  }) => {
+    await expect(page.getByRole('heading', { name: 'Todo' })).toBeVisible()
+    await expect(page.getByPlaceholder('添加新的待办事项...')).toBeVisible()
+    await expect(page.getByRole('button', { name: '添加' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: '全部' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    await expect(page.getByText('学习 React')).toBeVisible()
+    await expect(page.getByText('完成设计稿')).toBeVisible()
+    await expect(page.getByText('共 3 条待办，已完成 2 条')).toBeVisible()
+    await expect(page).toHaveScreenshot('todo-default.png', {
+      fullPage: true,
+    })
   })
 
   test('adds a todo via the input and add button', async ({ page }) => {
-    await page.getByPlaceholder('Add a new todo...').fill('Buy milk')
-    await page.getByRole('button', { name: 'Add' }).click()
-    await expect(page.getByText('Buy milk')).toBeVisible()
-    await expect(
-      page.getByText('No todos yet. Add one above!')
-    ).not.toBeVisible()
+    const input = page.getByPlaceholder('添加新的待办事项...')
+    await input.fill('整理会议纪要')
+    await page.getByRole('button', { name: '添加' }).click()
+
+    await expect(page.getByText('整理会议纪要')).toBeVisible()
+    await expect(page.getByText('共 4 条待办，已完成 2 条')).toBeVisible()
+    await expect(input).toHaveValue('')
   })
 
   test('adds a todo by pressing Enter', async ({ page }) => {
-    await page.getByPlaceholder('Add a new todo...').fill('Write code')
-    await page.getByPlaceholder('Add a new todo...').press('Enter')
-    await expect(page.getByText('Write code')).toBeVisible()
+    await page.getByPlaceholder('添加新的待办事项...').fill('写周报')
+    await page.getByPlaceholder('添加新的待办事项...').press('Enter')
+    await expect(page.getByText('写周报')).toBeVisible()
   })
 
-  test('does not add empty todos', async ({ page }) => {
-    await page.getByRole('button', { name: 'Add' }).click()
-    await expect(
-      page.getByText('No todos yet. Add one above!')
-    ).toBeVisible()
+  test('filters active and completed todos', async ({ page }) => {
+    await page.getByRole('tab', { name: '待办' }).click()
+    await expect(page.getByRole('tab', { name: '待办' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    )
+    await expect(page.getByText('学习 React')).toBeVisible()
+    await expect(page.getByText('完成设计稿')).not.toBeVisible()
+
+    await page.getByRole('tab', { name: '已完成' }).click()
+    await expect(page.getByText('完成设计稿')).toBeVisible()
+    await expect(page.getByText('去跑步')).not.toBeVisible()
   })
 
-  test('toggles a todo as completed', async ({ page }) => {
-    await page.getByPlaceholder('Add a new todo...').fill('Learn React')
-    await page.getByRole('button', { name: 'Add' }).click()
+  test('toggles and deletes todos', async ({ page }) => {
+    await page.getByRole('checkbox', { name: '标记为完成：学习 React' }).check()
+    await expect(page.getByText('共 2 条待办，已完成 3 条')).toBeVisible()
 
-    const checkbox = page.getByRole('checkbox')
-    await expect(checkbox).not.toBeChecked()
-
-    await checkbox.check()
-    await expect(checkbox).toBeChecked()
-
-    await checkbox.uncheck()
-    await expect(checkbox).not.toBeChecked()
-  })
-
-  test('deletes a todo', async ({ page }) => {
-    await page.getByPlaceholder('Add a new todo...').fill('Delete me')
-    await page.getByRole('button', { name: 'Add' }).click()
-    await expect(page.getByText('Delete me')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Delete' }).click()
-    await expect(page.getByText('Delete me')).not.toBeVisible()
-    await expect(
-      page.getByText('No todos yet. Add one above!')
-    ).toBeVisible()
-  })
-
-  test('input clears after adding a todo', async ({ page }) => {
-    const input = page.getByPlaceholder('Add a new todo...')
-    await input.fill('Clear input')
-    await page.getByRole('button', { name: 'Add' }).click()
-    await expect(input).toHaveValue('')
+    await page.getByRole('button', { name: '删除 去跑步' }).click()
+    await expect(page.getByText('去跑步')).not.toBeVisible()
+    await expect(page.getByText('共 1 条待办，已完成 3 条')).toBeVisible()
   })
 })

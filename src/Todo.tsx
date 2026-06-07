@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import './Todo.css'
 
 interface TodoItem {
   id: number
@@ -6,11 +7,33 @@ interface TodoItem {
   completed: boolean
 }
 
-let nextId = 1
+type TodoFilter = 'all' | 'active' | 'completed'
+
+interface FilterOption {
+  id: TodoFilter
+  label: string
+}
+
+const initialTodos: TodoItem[] = [
+  { id: 1, text: '学习 React', completed: false },
+  { id: 2, text: '完成设计稿', completed: true },
+  { id: 3, text: '去跑步', completed: false },
+  { id: 4, text: '阅读一本书', completed: true },
+  { id: 5, text: '学习 TypeScript', completed: false },
+]
+
+const filters: FilterOption[] = [
+  { id: 'all', label: '全部' },
+  { id: 'active', label: '待办' },
+  { id: 'completed', label: '已完成' },
+]
+
+let nextId = initialTodos.length + 1
 
 export default function Todo() {
-  const [todos, setTodos] = useState<TodoItem[]>([])
+  const [todos, setTodos] = useState<TodoItem[]>(initialTodos)
   const [input, setInput] = useState('')
+  const [filter, setFilter] = useState<TodoFilter>('all')
 
   function addTodo() {
     const text = input.trim()
@@ -29,45 +52,79 @@ export default function Todo() {
     setTodos((prev) => prev.filter((t) => t.id !== id))
   }
 
+  const visibleTodos = todos.filter((todo) => {
+    if (filter === 'active') return !todo.completed
+    if (filter === 'completed') return todo.completed
+    return true
+  })
+
+  const completedCount = todos.filter((todo) => todo.completed).length
+  const activeCount = todos.length - completedCount
+
   return (
     <div className="todo-app">
       <h1>Todo</h1>
       <div className="todo-input-row">
         <input
           type="text"
-          placeholder="Add a new todo..."
+          placeholder="添加新的待办事项..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addTodo()}
         />
         <button type="button" onClick={addTodo}>
-          Add
+          <span className="todo-add-icon" aria-hidden="true">
+            +
+          </span>
+          添加
         </button>
       </div>
+
+      <div className="todo-filters" role="tablist" aria-label="待办筛选">
+        {filters.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            role="tab"
+            aria-selected={filter === option.id}
+            className={filter === option.id ? 'active' : ''}
+            onClick={() => setFilter(option.id)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
       <ul className="todo-list">
-        {todos.map((todo) => (
+        {visibleTodos.map((todo) => (
           <li key={todo.id} className={todo.completed ? 'completed' : ''}>
             <label>
               <input
                 type="checkbox"
                 checked={todo.completed}
                 onChange={() => toggleTodo(todo.id)}
+                aria-label={`${todo.completed ? '标记为待办' : '标记为完成'}：${todo.text}`}
               />
               <span>{todo.text}</span>
             </label>
             <button
               type="button"
               className="delete-btn"
+              aria-label={`删除 ${todo.text}`}
               onClick={() => deleteTodo(todo.id)}
             >
-              Delete
+              <span aria-hidden="true" className="delete-icon" />
             </button>
           </li>
         ))}
-        {todos.length === 0 && (
-          <li className="empty-state">No todos yet. Add one above!</li>
+        {visibleTodos.length === 0 && (
+          <li className="empty-state">暂无匹配的待办事项</li>
         )}
       </ul>
+
+      <p className="todo-summary">
+        共 {activeCount} 条待办，已完成 {completedCount} 条
+      </p>
     </div>
   )
 }

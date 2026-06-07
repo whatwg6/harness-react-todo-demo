@@ -1,11 +1,14 @@
 .app {
   min-height: 100vh;
-  padding: 20px;
+  padding: 1px 60px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(219, 234, 254, 0.42), transparent 34%),
+    #f8fafc;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    background: #1a1a2e;
-    color: #e0e0e0;
+@media (max-width: 760px) {
+  .app {
+    padding: 1px 12px;
   }
 }
