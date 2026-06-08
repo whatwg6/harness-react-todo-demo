@@ -85,4 +85,32 @@ describe('Todo', () => {
     expect(screen.queryByText('去跑步')).not.toBeInTheDocument()
     expect(screen.getByText('共 2 条待办，已完成 2 条')).toBeInTheDocument()
   })
+
+  it('shows the empty state after deleting every todo and recovers after adding', () => {
+    renderTodo()
+
+    for (const todo of [
+      '学习 React',
+      '完成设计稿',
+      '去跑步',
+      '阅读一本书',
+      '学习 TypeScript',
+    ]) {
+      fireEvent.click(screen.getByRole('button', { name: `删除 ${todo}` }))
+    }
+
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.getByRole('status')).toHaveTextContent('还没有待办事项')
+    expect(screen.getByText('快去添加一条吧 ～')).toBeInTheDocument()
+    expect(screen.queryByText(/共 \d+ 条待办/)).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
+      target: { value: '重新开始' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '添加' }))
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByText('重新开始')).toBeInTheDocument()
+    expect(screen.getByText('共 1 条待办，已完成 0 条')).toBeInTheDocument()
+  })
 })

@@ -61,4 +61,28 @@ test.describe('Todo App', () => {
     await expect(page.getByText('去跑步')).not.toBeVisible()
     await expect(page.getByText('共 1 条待办，已完成 3 条')).toBeVisible()
   })
+
+  test('shows the empty state when no todos remain', async ({ page }) => {
+    for (const todo of [
+      '学习 React',
+      '完成设计稿',
+      '去跑步',
+      '阅读一本书',
+      '学习 TypeScript',
+    ]) {
+      await page.getByRole('button', { name: `删除 ${todo}` }).click()
+    }
+
+    await expect(page.getByRole('status')).toContainText('还没有待办事项')
+    await expect(page.getByText('快去添加一条吧 ～')).toBeVisible()
+    await expect(page.getByText(/共 \d+ 条待办/)).not.toBeVisible()
+    await expect(page).toHaveScreenshot('todo-empty.png', {
+      fullPage: true,
+    })
+
+    await page.getByPlaceholder('添加新的待办事项...').fill('重新开始')
+    await page.getByRole('button', { name: '添加' }).click()
+    await expect(page.getByText('重新开始')).toBeVisible()
+    await expect(page.getByText('共 1 条待办，已完成 0 条')).toBeVisible()
+  })
 })

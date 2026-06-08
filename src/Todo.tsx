@@ -95,36 +95,51 @@ export default function Todo() {
         ))}
       </div>
 
-      <ul className="todo-list">
-        {visibleTodos.map((todo) => (
-          <li key={todo.id} className={todo.completed ? 'completed' : ''}>
-            <label>
-              <input
-                type="checkbox"
-                checked={todo.completed}
-                onChange={() => toggleTodo(todo.id)}
-                aria-label={`${todo.completed ? '标记为待办' : '标记为完成'}：${todo.text}`}
-              />
-              <span>{todo.text}</span>
-            </label>
-            <button
-              type="button"
-              className="delete-btn"
-              aria-label={`删除 ${todo.text}`}
-              onClick={() => deleteTodo(todo.id)}
-            >
-              <span aria-hidden="true" className="delete-icon" />
-            </button>
-          </li>
-        ))}
-        {visibleTodos.length === 0 && (
-          <li className="empty-state">暂无匹配的待办事项</li>
-        )}
-      </ul>
+      {visibleTodos.length > 0 ? (
+        <ul className="todo-list">
+          {visibleTodos.map((todo) => (
+            <li key={todo.id} className={todo.completed ? 'completed' : ''}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={() => toggleTodo(todo.id)}
+                  aria-label={`${todo.completed ? '标记为待办' : '标记为完成'}：${todo.text}`}
+                />
+                <span>{todo.text}</span>
+              </label>
+              <button
+                type="button"
+                className="delete-btn"
+                aria-label={`删除 ${todo.text}`}
+                onClick={() => deleteTodo(todo.id)}
+              >
+                <span aria-hidden="true" className="delete-icon" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="todo-empty-state" role="status" aria-live="polite">
+          <div className="todo-empty-illustration" aria-hidden="true">
+            <div className="todo-empty-board">
+              <span className="todo-empty-eye" />
+              <span className="todo-empty-eye" />
+            </div>
+            <span className="todo-empty-spark todo-empty-spark-one">+</span>
+            <span className="todo-empty-spark todo-empty-spark-two">+</span>
+            <span className="todo-empty-dot" />
+          </div>
+          <p className="todo-empty-title">还没有待办事项</p>
+          <p className="todo-empty-text">快去添加一条吧 ～</p>
+        </div>
+      )}
 
-      <p className="todo-summary">
-        共 {activeCount} 条待办，已完成 {completedCount} 条
-      </p>
+      {todos.length > 0 && (
+        <p className="todo-summary">
+          共 {activeCount} 条待办，已完成 {completedCount} 条
+        </p>
+      )}
     </div>
   )
 }
