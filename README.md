@@ -4,6 +4,12 @@ A polished React + TypeScript Todo app with a pre-configured CI-grade harness: l
 
 The app is intentionally small, but the workflow is production-minded. It is useful as a starting point for AI agent development, UI iteration, and small React projects that need quality gates without a heavy framework.
 
+## Design Reference
+
+The Todo UI follows this design, including the default list, empty state, and disabled add-button state for blank input.
+
+![Todo app design](./public/todo-app-design.png)
+
 ## App Features
 
 - Chinese Todo interface matching the provided design
