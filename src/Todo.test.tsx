@@ -1,23 +1,26 @@
 import { render, screen, fireEvent, cleanup } from '@testing-library/react'
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import Todo from './Todo'
 
 afterEach(cleanup)
+beforeEach(() => {
+  window.localStorage.clear()
+})
 
 function renderTodo() {
   render(<Todo />)
 }
 
 describe('Todo', () => {
-  it('renders the redesigned default todo list', () => {
+  it('renders an empty todo list by default', () => {
     renderTodo()
 
     expect(screen.getByRole('heading', { name: 'Todo' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('添加新的待办事项...')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '添加' })).toBeInTheDocument()
-    expect(screen.getByText('学习 React')).toBeInTheDocument()
-    expect(screen.getByText('学习 TypeScript')).toBeInTheDocument()
-    expect(screen.getByText('共 3 条待办，已完成 2 条')).toBeInTheDocument()
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.getByRole('status')).toHaveTextContent('还没有待办事项')
+    expect(screen.queryByText(/共 \d+ 条待办/)).not.toBeInTheDocument()
   })
 
   it('adds a todo when typing and clicking add', () => {
@@ -28,7 +31,7 @@ describe('Todo', () => {
     fireEvent.click(screen.getByRole('button', { name: '添加' }))
 
     expect(screen.getByText('整理会议纪要')).toBeInTheDocument()
-    expect(screen.getByText('共 4 条待办，已完成 2 条')).toBeInTheDocument()
+    expect(screen.getByText('共 1 条待办，已完成 0 条')).toBeInTheDocument()
     expect(input).toHaveValue('')
   })
 
@@ -49,23 +52,36 @@ describe('Todo', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: '添加' }))
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(5)
-    expect(screen.getByText('共 3 条待办，已完成 2 条')).toBeInTheDocument()
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.getByRole('status')).toHaveTextContent('还没有待办事项')
   })
 
   it('toggles a todo as completed and updates the summary', () => {
     renderTodo()
+    fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
+      target: { value: '学习 React' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '添加' }))
     const checkbox = screen.getByRole('checkbox', { name: '标记为完成：学习 React' })
 
     expect(checkbox).not.toBeChecked()
     fireEvent.click(checkbox)
 
     expect(checkbox).toBeChecked()
-    expect(screen.getByText('共 2 条待办，已完成 3 条')).toBeInTheDocument()
+    expect(screen.getByText('共 0 条待办，已完成 1 条')).toBeInTheDocument()
   })
 
   it('filters active and completed todos', () => {
     renderTodo()
+    fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
+      target: { value: '学习 React' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '添加' }))
+    fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
+      target: { value: '完成设计稿' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '添加' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '标记为完成：完成设计稿' }))
 
     fireEvent.click(screen.getByRole('tab', { name: '待办' }))
     expect(screen.getByText('学习 React')).toBeInTheDocument()
@@ -78,39 +94,47 @@ describe('Todo', () => {
 
   it('deletes a todo', () => {
     renderTodo()
+    fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
+      target: { value: '去跑步' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '添加' }))
 
     expect(screen.getByText('去跑步')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: '删除 去跑步' }))
 
     expect(screen.queryByText('去跑步')).not.toBeInTheDocument()
-    expect(screen.getByText('共 2 条待办，已完成 2 条')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('还没有待办事项')
   })
 
-  it('shows the empty state after deleting every todo and recovers after adding', () => {
+  it('persists added, toggled, and deleted todos in localStorage', () => {
     renderTodo()
-
-    for (const todo of [
-      '学习 React',
-      '完成设计稿',
-      '去跑步',
-      '阅读一本书',
-      '学习 TypeScript',
-    ]) {
-      fireEvent.click(screen.getByRole('button', { name: `删除 ${todo}` }))
-    }
-
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
-    expect(screen.getByRole('status')).toHaveTextContent('还没有待办事项')
-    expect(screen.getByText('快去添加一条吧 ～')).toBeInTheDocument()
-    expect(screen.queryByText(/共 \d+ 条待办/)).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
       target: { value: '重新开始' },
     })
     fireEvent.click(screen.getByRole('button', { name: '添加' }))
+    fireEvent.change(screen.getByPlaceholderText('添加新的待办事项...'), {
+      target: { value: '临时事项' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '添加' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: '标记为完成：重新开始' }))
+    fireEvent.click(screen.getByRole('button', { name: '删除 临时事项' }))
 
-    expect(screen.queryByRole('status')).not.toBeInTheDocument()
-    expect(screen.getByText('重新开始')).toBeInTheDocument()
-    expect(screen.getByText('共 1 条待办，已完成 0 条')).toBeInTheDocument()
+    expect(window.localStorage.getItem('harness-react-demo:todos')).toBe(
+      JSON.stringify([{ id: 1, text: '重新开始', completed: true }]),
+    )
+  })
+
+  it('loads todos from localStorage', () => {
+    window.localStorage.setItem(
+      'harness-react-demo:todos',
+      JSON.stringify([{ id: 7, text: '继续昨天的任务', completed: true }]),
+    )
+
+    renderTodo()
+
+    expect(screen.getByText('继续昨天的任务')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: '标记为待办：继续昨天的任务' })).toBeChecked()
+    expect(screen.getByText('共 0 条待办，已完成 1 条')).toBeInTheDocument()
   })
 })

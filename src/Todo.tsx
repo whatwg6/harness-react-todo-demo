@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import './Todo.css'
 
 interface TodoItem {
@@ -14,31 +14,55 @@ interface FilterOption {
   label: string
 }
 
-const initialTodos: TodoItem[] = [
-  { id: 1, text: '学习 React', completed: false },
-  { id: 2, text: '完成设计稿', completed: true },
-  { id: 3, text: '去跑步', completed: false },
-  { id: 4, text: '阅读一本书', completed: true },
-  { id: 5, text: '学习 TypeScript', completed: false },
-]
-
 const filters: FilterOption[] = [
   { id: 'all', label: '全部' },
   { id: 'active', label: '待办' },
   { id: 'completed', label: '已完成' },
 ]
 
-let nextId = initialTodos.length + 1
+const todoStorageKey = 'harness-react-demo:todos'
+
+function isTodoItem(value: unknown): value is TodoItem {
+  if (typeof value !== 'object' || value === null) return false
+  const todo = value as Record<string, unknown>
+  return (
+    typeof todo.id === 'number' &&
+    Number.isFinite(todo.id) &&
+    typeof todo.text === 'string' &&
+    typeof todo.completed === 'boolean'
+  )
+}
+
+function readStoredTodos(): TodoItem[] {
+  const storedTodos = window.localStorage.getItem(todoStorageKey)
+  if (!storedTodos) return []
+
+  try {
+    const parsedTodos: unknown = JSON.parse(storedTodos)
+    return Array.isArray(parsedTodos) && parsedTodos.every(isTodoItem)
+      ? parsedTodos
+      : []
+  } catch {
+    return []
+  }
+}
 
 export default function Todo() {
-  const [todos, setTodos] = useState<TodoItem[]>(initialTodos)
+  const [todos, setTodos] = useState<TodoItem[]>(readStoredTodos)
   const [input, setInput] = useState('')
   const [filter, setFilter] = useState<TodoFilter>('all')
+
+  useEffect(() => {
+    window.localStorage.setItem(todoStorageKey, JSON.stringify(todos))
+  }, [todos])
 
   function addTodo() {
     const text = input.trim()
     if (!text) return
-    setTodos((prev) => [...prev, { id: nextId++, text, completed: false }])
+    setTodos((prev) => {
+      const nextId = Math.max(0, ...prev.map((todo) => todo.id)) + 1
+      return [...prev, { id: nextId, text, completed: false }]
+    })
     setInput('')
   }
 
