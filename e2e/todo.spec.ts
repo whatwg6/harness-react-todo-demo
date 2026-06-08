@@ -15,7 +15,7 @@ test.describe('Todo App', () => {
   test('matches the todo app design with no default content', async ({ page }) => {
     await expect(page.getByRole('heading', { name: 'Todo' })).toBeVisible()
     await expect(page.getByPlaceholder('添加新的待办事项...')).toBeVisible()
-    await expect(page.getByRole('button', { name: '添加' })).toBeVisible()
+    await expect(page.getByRole('button', { name: '添加' })).toBeDisabled()
     await expect(page.getByRole('tab', { name: '全部' })).toHaveAttribute(
       'aria-selected',
       'true',
@@ -26,6 +26,24 @@ test.describe('Todo App', () => {
     await expect(page).toHaveScreenshot('todo-empty.png', {
       fullPage: true,
     })
+  })
+
+  test('disables the add button until the input has content', async ({ page }) => {
+    const input = page.getByPlaceholder('添加新的待办事项...')
+    const addButton = page.getByRole('button', { name: '添加' })
+
+    await expect(addButton).toBeDisabled()
+    await expect(addButton).toHaveCSS('background-color', 'rgb(237, 241, 247)')
+
+    await input.fill('   ')
+    await expect(addButton).toBeDisabled()
+
+    await input.fill('整理会议纪要')
+    await expect(addButton).toBeEnabled()
+
+    await addButton.click()
+    await expect(addButton).toBeDisabled()
+    await expect(input).toHaveValue('')
   })
 
   test('adds a todo via the input and add button', async ({ page }) => {

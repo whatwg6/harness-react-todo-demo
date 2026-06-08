@@ -84,6 +84,7 @@ export default function Todo() {
 
   const completedCount = todos.filter((todo) => todo.completed).length
   const activeCount = todos.length - completedCount
+  const canAddTodo = input.trim().length > 0
 
   return (
     <div className="todo-app">
@@ -96,7 +97,7 @@ export default function Todo() {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addTodo()}
         />
-        <button type="button" onClick={addTodo}>
+        <button type="button" onClick={addTodo} disabled={!canAddTodo}>
           <span className="todo-add-icon" aria-hidden="true">
             +
           </span>

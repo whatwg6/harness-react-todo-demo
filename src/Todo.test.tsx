@@ -17,10 +17,27 @@ describe('Todo', () => {
 
     expect(screen.getByRole('heading', { name: 'Todo' })).toBeInTheDocument()
     expect(screen.getByPlaceholderText('添加新的待办事项...')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '添加' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '添加' })).toBeDisabled()
     expect(screen.queryAllByRole('listitem')).toHaveLength(0)
     expect(screen.getByRole('status')).toHaveTextContent('还没有待办事项')
     expect(screen.queryByText(/共 \d+ 条待办/)).not.toBeInTheDocument()
+  })
+
+  it('enables the add button only when the input has content', () => {
+    renderTodo()
+    const input = screen.getByPlaceholderText('添加新的待办事项...')
+    const addButton = screen.getByRole('button', { name: '添加' })
+
+    expect(addButton).toBeDisabled()
+
+    fireEvent.change(input, { target: { value: '   ' } })
+    expect(addButton).toBeDisabled()
+
+    fireEvent.change(input, { target: { value: '整理会议纪要' } })
+    expect(addButton).toBeEnabled()
+
+    fireEvent.click(addButton)
+    expect(addButton).toBeDisabled()
   })
 
   it('adds a todo when typing and clicking add', () => {

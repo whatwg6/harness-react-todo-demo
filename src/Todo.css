@@ -89,6 +89,19 @@
   transform: translateY(0);
 }
 
+.todo-input-row button:disabled {
+  color: #9ca3af;
+  background: #edf1f7;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.todo-input-row button:disabled:hover {
+  background: #edf1f7;
+  transform: none;
+  box-shadow: none;
+}
+
 .todo-add-icon {
   font-size: 52px;
   line-height: 1;
