@@ -1,61 +1,353 @@
-:root {
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@import 'tailwindcss';
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0;
-  color-scheme: light;
-  color: #111827;
-  background: #f8fafc;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  :root {
+    --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+    --mono: ui-monospace, Consolas, monospace;
+
+    font: 18px/145% var(--sans);
+    letter-spacing: 0;
+    color-scheme: light;
+    color: #111827;
+    background: #f8fafc;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100svh;
+    text-align: center;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--heading);
+    font-weight: 500;
+    color: #111827;
+  }
+
+  h1 {
+    font-size: 56px;
+    letter-spacing: 0;
+    margin: 32px 0;
+  }
+
+  h2 {
+    font-size: 24px;
+    line-height: 118%;
+    letter-spacing: 0;
+    margin: 0 0 8px;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  code,
+  .counter {
+    font-family: var(--mono);
+    display: inline-flex;
+    border-radius: 4px;
+    color: #111827;
+  }
+
+  code {
+    font-size: 15px;
+    line-height: 135%;
+    padding: 4px 8px;
+    background: #f3f4f6;
+  }
 }
 
-#root {
-  min-height: 100svh;
-  text-align: center;
+@utility break-anywhere {
+  overflow-wrap: anywhere;
 }
 
-body {
-  margin: 0;
+@layer components {
+  .todo-checkbox {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    border: 3px solid #7c838d;
+    border-radius: 50%;
+    background: #ffffff;
+    appearance: none;
+    cursor: pointer;
+  }
+
+  .todo-checkbox:focus-visible {
+    outline: 4px solid rgba(37, 99, 235, 0.24);
+    outline-offset: 5px;
+  }
+
+  .todo-checkbox:checked {
+    border-color: #2563eb;
+    background: #2563eb;
+  }
+
+  .todo-checkbox:checked::after {
+    position: absolute;
+    top: 9px;
+    left: 8px;
+    width: 19px;
+    height: 11px;
+    border-bottom: 4px solid #ffffff;
+    border-left: 4px solid #ffffff;
+    transform: rotate(-45deg);
+    content: '';
+  }
+
+  .delete-btn {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    border: 0;
+    background: transparent;
+    color: #ef4444;
+    cursor: pointer;
+  }
+
+  .delete-btn::before {
+    position: absolute;
+    top: 10px;
+    width: 18px;
+    height: 22px;
+    border: 3px solid currentColor;
+    border-top: 0;
+    border-radius: 0 0 4px 4px;
+    content: '';
+  }
+
+  .delete-btn::after {
+    position: absolute;
+    top: 6px;
+    width: 23px;
+    height: 7px;
+    border-top: 3px solid currentColor;
+    border-radius: 3px;
+    box-shadow: 0 6px 0 -3px currentColor;
+    content: '';
+  }
+
+  .delete-icon::before,
+  .delete-icon::after {
+    position: absolute;
+    top: 16px;
+    width: 3px;
+    height: 14px;
+    border-radius: 4px;
+    background: currentColor;
+    content: '';
+  }
+
+  .delete-icon::before {
+    left: 17px;
+  }
+
+  .delete-icon::after {
+    right: 17px;
+  }
+
+  .delete-btn:hover {
+    color: #dc2626;
+  }
+
+  .todo-empty-illustration {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 128px;
+    height: 128px;
+    margin-bottom: 20px;
+    border-radius: 50%;
+    background: #f2f5fb;
+  }
+
+  .todo-empty-board {
+    position: relative;
+    width: 58px;
+    height: 72px;
+    border: 3px solid #9aa3af;
+    border-radius: 8px;
+    background: #ffffff;
+  }
+
+  .todo-empty-board::before {
+    position: absolute;
+    top: -11px;
+    left: 15px;
+    width: 27px;
+    height: 14px;
+    border-radius: 8px 8px 4px 4px;
+    background: #9aa3af;
+    content: '';
+  }
+
+  .todo-empty-board::after {
+    position: absolute;
+    top: -17px;
+    left: 24px;
+    width: 10px;
+    height: 10px;
+    box-sizing: border-box;
+    border: 3px solid #9aa3af;
+    border-radius: 50%;
+    background: #ffffff;
+    content: '';
+  }
+
+  .todo-empty-eye {
+    position: absolute;
+    top: 36px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #9aa3af;
+  }
+
+  .todo-empty-eye:first-child {
+    left: 17px;
+  }
+
+  .todo-empty-eye:last-child {
+    right: 17px;
+  }
+
+  .todo-empty-spark {
+    position: absolute;
+    color: #e1e6ef;
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 700;
+  }
+
+  .todo-empty-spark-one {
+    top: 45px;
+    right: -18px;
+  }
+
+  .todo-empty-spark-two {
+    right: 8px;
+    bottom: 31px;
+  }
+
+  .todo-empty-dot {
+    position: absolute;
+    bottom: 31px;
+    left: -16px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #e1e6ef;
+  }
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: #111827;
-}
+@media (min-width: 768px) {
+  .todo-checkbox {
+    width: 64px;
+    height: 64px;
+    border-width: 4px;
+  }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: 0;
-  margin: 32px 0;
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: 0;
-  margin: 0 0 8px;
-}
-p {
-  margin: 0;
-}
+  .todo-checkbox:checked::after {
+    top: 15px;
+    left: 13px;
+    width: 30px;
+    height: 17px;
+    border-bottom-width: 5px;
+    border-left-width: 5px;
+  }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: #111827;
-}
+  .delete-btn {
+    width: 54px;
+    height: 54px;
+  }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: #f3f4f6;
+  .delete-btn::before {
+    top: 11px;
+    width: 25px;
+    height: 31px;
+    border-width: 4px;
+    border-top: 0;
+  }
+
+  .delete-btn::after {
+    top: 5px;
+    width: 31px;
+    height: 9px;
+    border-top-width: 4px;
+    box-shadow: 0 7px 0 -3px currentColor;
+  }
+
+  .delete-icon::before,
+  .delete-icon::after {
+    top: 18px;
+    width: 4px;
+    height: 20px;
+  }
+
+  .delete-icon::before {
+    left: 21px;
+  }
+
+  .delete-icon::after {
+    right: 21px;
+  }
+
+  .todo-empty-illustration {
+    width: 170px;
+    height: 170px;
+    margin-bottom: 26px;
+  }
+
+  .todo-empty-board {
+    width: 76px;
+    height: 94px;
+    border-width: 4px;
+  }
+
+  .todo-empty-board::before {
+    top: -14px;
+    left: 20px;
+    width: 34px;
+    height: 18px;
+  }
+
+  .todo-empty-board::after {
+    top: -22px;
+    left: 31px;
+    width: 12px;
+    height: 12px;
+    border-width: 4px;
+  }
+
+  .todo-empty-eye {
+    top: 47px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .todo-empty-eye:first-child {
+    left: 22px;
+  }
+
+  .todo-empty-eye:last-child {
+    right: 22px;
+  }
+
+  .todo-empty-spark {
+    font-size: 31px;
+  }
 }
