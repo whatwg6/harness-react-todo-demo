@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/harness-react-demo/',
+  base: '/harness-react-todo-demo/',
   plugins: [react(), tailwindcss()],
   test: {
     environment: 'jsdom',
