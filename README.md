@@ -1,8 +1,27 @@
 # Harness React Todo
 
-A polished React + TypeScript Todo app with a pre-configured CI-grade harness: linting, type-checking, unit tests, e2e tests, visual regression screenshots, and a single `verify` command that runs them all.
+A polished React + TypeScript Todo app with a pre-configured CI-grade harness: linting, type-checking, unit tests, e2e tests, local visual regression screenshots, and a single `verify` command for the full local pipeline.
 
-The app is intentionally small, but the workflow is production-minded. It is useful as a starting point for AI agent development, UI iteration, and small React projects that need quality gates without a heavy framework.
+## Background
+
+This project is intentionally small, but the workflow is production-minded. It is useful as a starting point for AI agent development, UI iteration, and small React projects that need quality gates without a heavy framework.
+
+The app also captures a practical testing lesson: functional e2e tests and screenshot tests have different stability profiles. Functional checks are reliable enough for every CI run. Pixel screenshots are useful for visual iteration, especially when an agent is matching a design, but they are sensitive to the exact rendering environment.
+
+## CI / Visual Testing Lessons
+
+- CI runs on `ubuntu-latest` and executes lint, typecheck, unit tests, and Playwright functional e2e flows.
+- Screenshot assertions are skipped when `CI=true`. This keeps pull requests from failing on harmless one-pixel differences caused by runner OS, browser patch versions, fonts, anti-aliasing, or subpixel rendering.
+- Local `pnpm e2e` still runs screenshot assertions. Agents and developers can use this as a fast visual feedback loop while refining UI.
+- Snapshot updates should be intentional: run `pnpm e2e --update-snapshots` only after a deliberate visual change.
+- For a team-wide visual regression gate, use one reproducible visual environment, such as a pinned Docker image or a dedicated CI visual job. Avoid mixing baselines generated from different developer machines.
+
+Current policy:
+
+```text
+CI:    stable behavior checks, no screenshot assertions
+Local: behavior checks + screenshot assertions for visual iteration
+```
 
 ## Design Reference
 
@@ -19,7 +38,7 @@ The Todo UI follows this design, including the default list, empty state, and di
 - Delete individual todos
 - Filter by `全部`, `待办`, and `已完成`
 - Live summary of active and completed counts
-- Playwright screenshot coverage for visual fidelity
+- Local Playwright screenshot coverage for visual fidelity
 
 ## Tech Stack
 
@@ -30,7 +49,7 @@ The Todo UI follows this design, including the default list, empty state, and di
 | Bundler | Vite 8 |
 | Package Manager | pnpm |
 | Unit Testing | Vitest + React Testing Library |
-| E2E Testing | Playwright + screenshot snapshots |
+| E2E Testing | Playwright functional flows + local screenshot snapshots |
 | Linter | ESLint 10 (flat config) |
 
 ## Prerequisites
@@ -64,7 +83,7 @@ pnpm build
 | `pnpm lint` | Run ESLint on all source files |
 | `pnpm typecheck` | Run TypeScript compiler checks (`tsc -b`) |
 | `pnpm test` | Run Vitest unit tests |
-| `pnpm e2e` | Run Playwright e2e tests (auto-starts dev server) |
+| `pnpm e2e` | Run Playwright e2e tests (auto-starts dev server; local runs include screenshots) |
 | `pnpm verify` | **Full pipeline:** lint → typecheck → test → e2e |
 
 ## Project Structure
@@ -74,7 +93,8 @@ harness-react-demo/
 ├── e2e/                    # Playwright e2e tests
 │   ├── todo.spec.ts        #   Todo app e2e test suite
 │   └── todo.spec.ts-snapshots/
-│       └── todo-default-darwin.png
+│       ├── todo-default-darwin.png
+│       └── todo-empty-darwin.png
 ├── public/                 # Static assets (favicon, icons)
 ├── src/                    # Application source
 │   ├── assets/             #   Image assets
@@ -131,7 +151,7 @@ describe('Todo', () => {
 
 Located in `e2e/`. Uses Playwright with Chromium. Playwright's `webServer` config auto-starts the Vite dev server.
 
-The e2e suite covers the main user flows and includes a screenshot assertion for the default Todo screen.
+The e2e suite covers the main user flows and includes a local screenshot assertion for the default Todo screen.
 
 ```bash
 pnpm e2e
@@ -139,6 +159,17 @@ pnpm e2e
 # Update visual snapshots after intentional UI changes
 pnpm e2e --update-snapshots
 ```
+
+When `CI=true`, screenshot assertions are skipped. CI still runs the same functional e2e flows, but avoids pixel-level visual checks. Even a one-pixel difference can fail a snapshot on GitHub Actions while the UI is functionally unchanged.
+
+For agent or developer visual iteration, use local screenshots as a fast feedback loop:
+
+```bash
+pnpm e2e
+pnpm e2e --update-snapshots
+```
+
+Treat those snapshots as development aids unless the team standardizes a fixed visual test environment. If visual regression testing should become a shared merge gate, run it in one reproducible environment and update snapshots only from that environment.
 
 Example test pattern:
 
@@ -159,7 +190,7 @@ test('adds a todo', async ({ page }) => {
 pnpm verify
 ```
 
-Runs lint, typecheck, unit tests, and e2e tests.
+Runs lint, typecheck, unit tests, and e2e tests. In CI, e2e tests skip screenshot assertions and focus on stable behavior checks.
 
 ## Adding New Code
 
