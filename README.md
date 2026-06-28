@@ -1,22 +1,32 @@
 # Harness React Todo
 
-A polished React + TypeScript Todo app with a pre-configured CI-grade harness: linting, type-checking, unit tests, e2e tests, local visual regression screenshots, and a single `verify` command for the full local pipeline.
+一个 React + TypeScript + Vite Todo 页面实现，用来验证 AI 是否能根据视觉参考完成代码还原。项目本身很小，但配了一套完整 harness：lint、typecheck、unit tests、Playwright e2e、本地截图回归，以及一个 `pnpm verify` 命令。
 
-## Background
+## 项目背景与经验总结
 
-This project is intentionally small, but the workflow is production-minded. It is useful as a starting point for AI agent development, UI iteration, and small React projects that need quality gates without a heavy framework.
+这个项目在补 CI 时踩到了 Playwright 截图测试的几个典型问题。Todo 页面本身很小，功能 e2e 很稳定，但一旦把 `toHaveScreenshot()` 放进 CI，测试就会受到运行环境影响，变成不稳定的质量门槛。
 
-The app also captures a practical testing lesson: functional e2e tests and screenshot tests have different stability profiles. Functional checks are reliable enough for every CI run. Pixel screenshots are useful for visual iteration, especially when an agent is matching a design, but they are sensitive to the exact rendering environment.
+主要问题集中在这些地方：
 
-## CI / Visual Testing Lessons
+- Playwright 截图基线按平台区分。仓库里已有的是 `*-darwin.png`，CI 如果跑在 `ubuntu-latest`，会寻找 `*-linux.png`，没有对应基线就会失败。
+- 即使切到 `macos-latest`，GitHub Actions 的 macOS、Chromium patch、字体渲染和抗锯齿也可能和本机不同，出现 1 个像素差异也会让截图断言失败。
+- 给截图断言加 `maxDiffPixels` 可以缓解轻微抖动，但这只是容忍误差，不是根治环境差异；阈值设大了还会削弱视觉回归测试价值。
+- 在 CI 安装 Chromium 会增加耗时。Ubuntu 还需要 `--with-deps` 安装系统依赖，macOS runner 又更贵、更慢，不适合作为单纯截图兼容方案。
+- 团队成员的机器不同，直接提交各自生成的截图基线会让快照混乱。视觉基线必须来自一个约定好的固定环境，否则 review 时很难判断差异是代码变化还是环境变化。
 
-- CI runs on `ubuntu-latest` and executes lint, typecheck, unit tests, and Playwright functional e2e flows.
-- Screenshot assertions are skipped when `CI=true`. This keeps pull requests from failing on harmless one-pixel differences caused by runner OS, browser patch versions, fonts, anti-aliasing, or subpixel rendering.
-- Local `pnpm e2e` still runs screenshot assertions. Agents and developers can use this as a fast visual feedback loop while refining UI.
-- Snapshot updates should be intentional: run `pnpm e2e --update-snapshots` only after a deliberate visual change.
-- For a team-wide visual regression gate, use one reproducible visual environment, such as a pinned Docker image or a dedicated CI visual job. Avoid mixing baselines generated from different developer machines.
+因此，这个项目最终选择把截图测试定位为本地视觉迭代工具，而不是默认 CI 合并门槛。AI agent 或开发者在本地用截图快速对齐 UI，CI 则专注验证稳定的功能行为。
 
-Current policy:
+推荐做法：
+
+- CI 跑 lint、typecheck、unit tests 和功能 e2e，避免像素级截图断言影响 PR 稳定性。
+- 本地保留 `pnpm e2e` 截图断言，用于 AI agent 迭代视觉还原。
+- 有意修改 UI 时，在本地用 `pnpm e2e --update-snapshots` 更新快照。
+- 如果团队需要把视觉回归作为强门槛，应单独建设固定 visual job，例如 pinned Docker 镜像或统一 runner，并只允许从这个环境更新截图基线。
+- 不要把“本机截图通过”当成跨平台视觉一致的证明。
+
+## CI 与视觉测试策略
+
+当前项目采用分层策略：
 
 ```text
 CI:    stable behavior checks, no screenshot assertions
