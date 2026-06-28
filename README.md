@@ -4,25 +4,48 @@
 
 ## 项目背景与经验总结
 
-这个项目在补 CI 时踩到了 Playwright 截图测试的几个典型问题。Todo 页面本身很小，功能 e2e 很稳定，但一旦把 `toHaveScreenshot()` 放进 CI，测试就会受到运行环境影响，变成不稳定的质量门槛。
+这个项目用于验证 AI 根据视觉参考还原前端页面时，如何结合 Playwright 做本地视觉迭代和 CI 校验。
 
-主要问题集中在这些地方：
+实践中发现，Playwright 截图测试不适合作为默认 CI 门槛：
 
-- Playwright 截图基线按平台区分。仓库里已有的是 `*-darwin.png`，CI 如果跑在 `ubuntu-latest`，会寻找 `*-linux.png`，没有对应基线就会失败。
-- 即使切到 `macos-latest`，GitHub Actions 的 macOS、Chromium patch、字体渲染和抗锯齿也可能和本机不同，出现 1 个像素差异也会让截图断言失败。
-- 给截图断言加 `maxDiffPixels` 可以缓解轻微抖动，但这只是容忍误差，不是根治环境差异；阈值设大了还会削弱视觉回归测试价值。
-- 在 CI 安装 Chromium 会增加耗时。Ubuntu 还需要 `--with-deps` 安装系统依赖，macOS runner 又更贵、更慢，不适合作为单纯截图兼容方案。
-- 团队成员的机器不同，直接提交各自生成的截图基线会让快照混乱。视觉基线必须来自一个约定好的固定环境，否则 review 时很难判断差异是代码变化还是环境变化。
+- Playwright 截图基线按平台区分，例如 `*-darwin.png` 和 `*-linux.png` 不能混用。
+- CI 和本机即使用同类系统，也可能因为 runner 镜像、Chromium patch、字体渲染、抗锯齿和子像素差异导致 1 像素失败。
+- `maxDiffPixels` 只能缓解轻微抖动，不能根治环境差异；阈值过大还会削弱视觉回归价值。
+- CI 安装 Chromium 有额外耗时，Ubuntu 需要 `--with-deps`，macOS runner 成本更高。
+- 团队成员机器不同，不能随意提交各自生成的截图基线，否则很难判断差异来自代码还是环境。
 
-因此，这个项目最终选择把截图测试定位为本地视觉迭代工具，而不是默认 CI 合并门槛。AI agent 或开发者在本地用截图快速对齐 UI，CI 则专注验证稳定的功能行为。
+因此当前策略是：
 
-推荐做法：
+```text
+CI:    lint + typecheck + unit tests + 功能 e2e，不跑截图断言
+Local: 功能 e2e + 截图断言，用于 AI/开发者视觉迭代
+```
 
-- CI 跑 lint、typecheck、unit tests 和功能 e2e，避免像素级截图断言影响 PR 稳定性。
-- 本地保留 `pnpm e2e` 截图断言，用于 AI agent 迭代视觉还原。
-- 有意修改 UI 时，在本地用 `pnpm e2e --update-snapshots` 更新快照。
-- 如果团队需要把视觉回归作为强门槛，应单独建设固定 visual job，例如 pinned Docker 镜像或统一 runner，并只允许从这个环境更新截图基线。
-- 不要把“本机截图通过”当成跨平台视觉一致的证明。
+从 0 还原设计稿时，Playwright baseline 也不能一开始就生成。第一张实现截图只是当前实现，不是设计真相。正确流程是：
+
+```text
+设计参考图 / 设计稿
+        ↓
+AI 实现页面
+        ↓
+Playwright 截取当前页面
+        ↓
+对比“当前截图 vs 设计参考”
+        ↓
+继续调整布局、尺寸、间距、颜色和状态
+        ↓
+验收后再生成 Playwright snapshot
+        ↓
+后续用 snapshot 防回归
+```
+
+让 agent 自己迭代视觉还原时，prompt 应该明确三件事：
+
+- 参考源：设计图、截图尺寸、浏览器、设备像素比、字体和可用资源。
+- 对比方式：每轮用 Playwright 截图，并和参考图比较布局、尺寸、间距、颜色、字体、状态和溢出问题。
+- 终止条件：先达到人工认可或可接受误差，再更新 snapshot；不要把首次实现截图直接当 baseline。
+
+结论：截图测试适合做本地视觉反馈和已验收页面的防回归；如果要作为团队级合并门槛，必须建设固定 visual 环境，例如 pinned Docker 镜像或专门 CI visual job，并只从该环境更新截图基线。
 
 ## CI 与视觉测试策略
 
