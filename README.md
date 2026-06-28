@@ -1,12 +1,33 @@
 # Harness React Todo
 
-一个 React + TypeScript + Vite Todo 页面实现，用来验证 AI 是否能根据视觉参考完成代码还原。项目本身很小，但配了一套完整 harness：lint、typecheck、unit tests、Playwright e2e、本地截图回归，以及一个 `pnpm verify` 命令。
+一个 React + TypeScript + Vite Todo 页面实现，用来验证 AI 是否能根据视觉参考完成代码还原。项目本身很小，但配了一套完整 harness：lint、typecheck、unit tests、Playwright e2e，以及一个 `pnpm verify` 命令。
 
 ## 项目背景与经验总结
 
-这个项目用于验证 AI 根据视觉参考还原前端页面时，如何结合 Playwright 做本地视觉迭代和 CI 校验。
+这个项目用于验证 AI 根据视觉参考还原前端页面时，如何组织测试和 CI。核心经验是：从 0 开发时不要把 Playwright 截图测试当成设计还原的起点，截图基线应该在页面被验收后再生成。
 
-实践中发现，Playwright 截图测试不适合作为默认 CI 门槛：
+原因很直接：第一张 Playwright 截图只是当前实现的结果，不是设计真相。如果一开始就自动生成 snapshot，很容易把一个“还没还原准确”的页面固化成基线。
+
+推荐流程：
+
+```text
+从 0 开发:
+  写功能 e2e
+  不写 toHaveScreenshot()
+  不提交 snapshot
+  用临时截图辅助 agent / 人工对比设计稿
+
+验收之后:
+  再生成 snapshot
+  再添加 toHaveScreenshot()
+  用于本地防回归
+
+CI:
+  默认跑 lint + typecheck + unit tests + 功能 e2e
+  不跑截图断言
+```
+
+Playwright 截图测试也不适合作为默认 CI 门槛：
 
 - Playwright 截图基线按平台区分，例如 `*-darwin.png` 和 `*-linux.png` 不能混用。
 - CI 和本机即使用同类系统，也可能因为 runner 镜像、Chromium patch、字体渲染、抗锯齿和子像素差异导致 1 像素失败。
@@ -14,38 +35,13 @@
 - CI 安装 Chromium 有额外耗时，Ubuntu 需要 `--with-deps`，macOS runner 成本更高。
 - 团队成员机器不同，不能随意提交各自生成的截图基线，否则很难判断差异来自代码还是环境。
 
-因此当前策略是：
-
-```text
-CI:    lint + typecheck + unit tests + 功能 e2e，不跑截图断言
-Local: 功能 e2e + 截图断言，用于 AI/开发者视觉迭代
-```
-
-从 0 还原设计稿时，Playwright baseline 也不能一开始就生成。第一张实现截图只是当前实现，不是设计真相。正确流程是：
-
-```text
-设计参考图 / 设计稿
-        ↓
-AI 实现页面
-        ↓
-Playwright 截取当前页面
-        ↓
-对比“当前截图 vs 设计参考”
-        ↓
-继续调整布局、尺寸、间距、颜色和状态
-        ↓
-验收后再生成 Playwright snapshot
-        ↓
-后续用 snapshot 防回归
-```
-
 让 agent 自己迭代视觉还原时，prompt 应该明确三件事：
 
 - 参考源：设计图、截图尺寸、浏览器、设备像素比、字体和可用资源。
-- 对比方式：每轮用 Playwright 截图，并和参考图比较布局、尺寸、间距、颜色、字体、状态和溢出问题。
+- 对比方式：每轮生成临时截图，并和参考图比较布局、尺寸、间距、颜色、字体、状态和溢出问题。
 - 终止条件：先达到人工认可或可接受误差，再更新 snapshot；不要把首次实现截图直接当 baseline。
 
-结论：截图测试适合做本地视觉反馈和已验收页面的防回归；如果要作为团队级合并门槛，必须建设固定 visual 环境，例如 pinned Docker 镜像或专门 CI visual job，并只从该环境更新截图基线。
+结论：功能 e2e 是从 0 开发阶段的稳定反馈；截图测试适合做临时视觉对比和已验收页面的防回归。如果要把视觉回归作为团队级合并门槛，必须建设固定 visual 环境，例如 pinned Docker 镜像或专门 CI visual job，并只从该环境更新截图基线。
 
 ## CI 与视觉测试策略
 
@@ -53,7 +49,7 @@ Playwright 截取当前页面
 
 ```text
 CI:    stable behavior checks, no screenshot assertions
-Local: behavior checks + screenshot assertions for visual iteration
+Local: behavior checks; screenshots only after the UI has an accepted baseline
 ```
 
 ## Design Reference
@@ -71,7 +67,7 @@ The Todo UI follows this design, including the default list, empty state, and di
 - Delete individual todos
 - Filter by `全部`, `待办`, and `已完成`
 - Live summary of active and completed counts
-- Local Playwright screenshot coverage for visual fidelity
+- Playwright e2e coverage for user flows
 
 ## Tech Stack
 
@@ -82,7 +78,7 @@ The Todo UI follows this design, including the default list, empty state, and di
 | Bundler | Vite 8 |
 | Package Manager | pnpm |
 | Unit Testing | Vitest + React Testing Library |
-| E2E Testing | Playwright functional flows + local screenshot snapshots |
+| E2E Testing | Playwright functional flows |
 | Linter | ESLint 10 (flat config) |
 
 ## Prerequisites
@@ -116,7 +112,7 @@ pnpm build
 | `pnpm lint` | Run ESLint on all source files |
 | `pnpm typecheck` | Run TypeScript compiler checks (`tsc -b`) |
 | `pnpm test` | Run Vitest unit tests |
-| `pnpm e2e` | Run Playwright e2e tests (auto-starts dev server; local runs include screenshots) |
+| `pnpm e2e` | Run Playwright e2e tests (auto-starts dev server; screenshots are skipped in CI) |
 | `pnpm verify` | **Full pipeline:** lint → typecheck → test → e2e |
 
 ## Project Structure
@@ -184,25 +180,27 @@ describe('Todo', () => {
 
 Located in `e2e/`. Uses Playwright with Chromium. Playwright's `webServer` config auto-starts the Vite dev server.
 
-The e2e suite covers the main user flows and includes a local screenshot assertion for the default Todo screen.
+The e2e suite covers the main user flows. Screenshot assertions are only useful after the UI has an accepted visual baseline.
 
 ```bash
 pnpm e2e
-
-# Update visual snapshots after intentional UI changes
-pnpm e2e --update-snapshots
 ```
 
 When `CI=true`, screenshot assertions are skipped. CI still runs the same functional e2e flows, but avoids pixel-level visual checks. Even a one-pixel difference can fail a snapshot on GitHub Actions while the UI is functionally unchanged.
 
-For agent or developer visual iteration, use local screenshots as a fast feedback loop:
+For agent or developer visual iteration from a design reference, use temporary screenshots as feedback, but do not commit snapshots until the page has been reviewed and accepted:
 
 ```bash
 pnpm e2e
+```
+
+After acceptance, visual regression snapshots can be added or updated intentionally:
+
+```bash
 pnpm e2e --update-snapshots
 ```
 
-Treat those snapshots as development aids unless the team standardizes a fixed visual test environment. If visual regression testing should become a shared merge gate, run it in one reproducible environment and update snapshots only from that environment.
+Treat snapshots as regression baselines, not proof that the first implementation matched the design. If visual regression testing should become a shared merge gate, run it in one reproducible environment and update snapshots only from that environment.
 
 Example test pattern:
 
@@ -230,7 +228,7 @@ Runs lint, typecheck, unit tests, and e2e tests. In CI, e2e tests skip screensho
 1. Create or update the component and its CSS.
 2. Add or update a nearby `*.test.tsx` unit test.
 3. Add or update a Playwright spec in `e2e/` for full-page behavior.
-4. Update screenshot snapshots when the visual change is intentional.
+4. For new designs, use temporary screenshots for comparison; add or update snapshots only after visual acceptance.
 5. Run `pnpm verify` before committing.
 
 ---
