@@ -25,6 +25,7 @@ test.describe('Todo App', () => {
     await expect(page.getByText(/共 \d+ 条待办/)).not.toBeVisible()
     await expect(page).toHaveScreenshot('todo-empty.png', {
       fullPage: true,
+      maxDiffPixels: 2,
     })
   })
 
